@@ -58,31 +58,42 @@ function createCube(gl) {
   ]
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW)
 
-  const colorBuffer = gl.createBuffer()
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer)
-  const faceColors = [
-    [1.0, 0.0, 0.0, 1.0], // front face
-    [0.0, 1.0, 0.0, 1.0], // back face
-    [0.0, 0.0, 1.0, 1.0], // top face
-    [1.0, 1.0, 0.0, 1.0], // bottom face
-    [1.0, 0.0, 1.0, 1.0], // right face
-    [0.0, 1.0, 1.0, 1.0], // left face
-  ]
-  const vertexColors = faceColors.reduce((l, c) => [...l, ...c, ...c, ...c, ...c], [])
-  /*
-  console.log(vertexColors1)
-  var vertexColors = [];
-  for (var i in faceColors) {
-      var color = faceColors[i];
-      for (var j=0; j < 4; j++) {
-        vertexColors = vertexColors.concat(color);
-      }
-  }
-  console.log(vertexColors)
-  */
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexColors), gl.STATIC_DRAW)
+  // using texture instead of color
+  // const colorBuffer = gl.createBuffer()
+  // gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer)
+  // const faceColors = [
+  //   [1.0, 0.0, 0.0, 1.0], // front face
+  //   [0.0, 1.0, 0.0, 1.0], // back face
+  //   [0.0, 0.0, 1.0, 1.0], // top face
+  //   [1.0, 1.0, 0.0, 1.0], // bottom face
+  //   [1.0, 0.0, 1.0, 1.0], // right face
+  //   [0.0, 1.0, 1.0, 1.0], // left face
+  // ]
+  // const vertexColors = faceColors.reduce((l, c) => [...l, ...c, ...c, ...c, ...c], [])
+  // // original code replaced by reduce above
+  // // console.log(vertexColors1)
+  // // var vertexColors = [];
+  // // for (var i in faceColors) {
+  // //     var color = faceColors[i];
+  // //     for (var j=0; j < 4; j++) {
+  // //       vertexColors = vertexColors.concat(color);
+  // //     }
+  // // }
+  // // console.log(vertexColors)
+  // gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertexColors), gl.STATIC_DRAW)
 
-  const cubeIndexBuffer = gl.createBuffer()
+  const texCoordBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+  var textureCoords = [
+    // front face
+    // front face
+    // back face
+    // top face
+    // bottom face
+    // right face
+  ];
+
+    const cubeIndexBuffer = gl.createBuffer()
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndexBuffer)
   const cubeIndices = [
     0,   1,  2,     0,  2,  3,   // front face
@@ -195,6 +206,28 @@ function draw(gl, obj, shader, matrices) {
   gl.drawElements(obj.primtype, obj.nIndices, gl.UNSIGNED_SHORT, 0)
 }
 
+var texturesReady = false;
+
+function handleTextureLoaded(gl, texture) {
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.textImage2d(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+  texturesReady = true;
+}
+
+var webGLTexture;
+
+function initTexture(gl) {
+  webGLTexture = gl.createTexture();
+  webGLTexture.image = new Image();
+  webGLTexture.image.onload = function () {
+    handleTextureLoaded(gl, webGLTexture);
+  }
+  webGLTexture.image.src = 'jo1.png';
+}
 
 var currentTime = Date.now();
 function animate(matrices, frameDuration) {
