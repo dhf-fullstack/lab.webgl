@@ -2,6 +2,12 @@ import { vec3, mat4 } from 'gl-matrix'
 import fragmentShaderSource from './fragmentShader.glsl'
 import vertexShaderSource from './vertexShader.glsl'
 
+function log(...args) {
+  var div = document.createElement("div");
+  div.textContent = [...args].join(" ");
+  document.body.appendChild(div);
+}
+
 function initWebGL(canvas) {
   let gl = null
   let msg = `Your browser does not support WebGL, or it is not enabled by default.`
@@ -86,14 +92,44 @@ function createCube(gl) {
   gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
   var textureCoords = [
     // front face
-    // front face
-    // back face
-    // top face
-    // bottom face
-    // right face
-  ];
+    0.0, 0.0,
+    1.0, 0.0,
+    1.0, 1.0,
+    0.0, 1.0,
 
-    const cubeIndexBuffer = gl.createBuffer()
+    // back face
+    1.0, 0.0,
+    1.0, 1.0,
+    0.0, 1.0,
+    0.0, 0.0,
+
+    // top face
+    0.0, 1.0,
+    0.0, 0.0,
+    1.0, 0.0,
+    1.0, 1.0,
+
+    // bottom face
+    1.0, 1.0,
+    0.0, 1.0,
+    0.0, 0.0,
+    1.0, 0.0,
+
+    // right face
+    1.0, 0.0,
+    1.0, 1.0,
+    0.0, 1.0,
+    0.0, 0.0,
+
+    // left face
+    0.0, 0.0,
+    1.0, 0.0,
+    1.0, 1.0,
+    0.0, 1.0
+  ];
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(textureCoords), gl.STATIC_DRAW);
+
+  const cubeIndexBuffer = gl.createBuffer()
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeIndexBuffer)
   const cubeIndices = [
     0,   1,  2,     0,  2,  3,   // front face
@@ -106,12 +142,15 @@ function createCube(gl) {
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeIndices), gl.STATIC_DRAW)
 
   const cube = { buffer: vertexBuffer,
-                 colorBuffer: colorBuffer,
+                 //colorBuffer: colorBuffer,
+                 texCoordBuffer: texCoordBuffer,
                  indices: cubeIndexBuffer,
                  vertSize: 3,
                  nVerts: 24,
-                 colorSize: 4,
-                 nColors: 24,
+                 //colorSize: 4,
+                 //nColors: 24,
+                 texCoordSize: 2,
+                 nTextCoords: 24,
                  nIndices: 36,
                  primtype: gl.TRIANGLES
                 }
@@ -155,21 +194,38 @@ function initShader(gl) {
   const fragmentShader = createShader(gl, fragmentShaderSource, 'fragment')
   const vertexShader = createShader(gl, vertexShaderSource, 'vertex')
 
+  /* DEBUGGING - uncomment for shader creation errors
+  log('frag')
+  log(gl.getShaderInfoLog(fragmentShader))
+  log('vert')
+  log(gl.getShaderInfoLog(vertexShader))
+  */
+
   // link them
   const shaderProgram = gl.createProgram();
   gl.attachShader(shaderProgram, fragmentShader)
   gl.attachShader(shaderProgram, vertexShader)
   gl.linkProgram(shaderProgram)
+  
+  /* DEBUGGING - uncomment for compilation & linking errors
+  log('prog')
+  log(gl.getProgramInfoLog(shaderProgram))
+  */
 
   // get pointers to the shader params
   const shaderVertexPositionAttribute = gl.getAttribLocation(shaderProgram, 'vertexPos')
   gl.enableVertexAttribArray(shaderVertexPositionAttribute)
 
-  const shaderVertexColorAttribute = gl.getAttribLocation(shaderProgram, 'vertexColor')
-  gl.enableVertexAttribArray(shaderVertexColorAttribute)
+  // replace color with texture
+  //const shaderVertexColorAttribute = gl.getAttribLocation(shaderProgram, 'vertexColor')
+  //gl.enableVertexAttribArray(shaderVertexColorAttribute)
+
+  const shaderTexCoordAttribute = gl.getAttribLocation(shaderProgram, 'texCoord')
+  gl.enableVertexAttribArray(shaderTexCoordAttribute)
 
   const shaderProjectionMatrixUniform = gl.getUniformLocation(shaderProgram, 'projectionMatrix')
   const shaderModelViewMatrixUniform = gl.getUniformLocation(shaderProgram, 'modelViewMatrix')
+  const shaderSamplerUniform = gl.getUniformLocation(shaderProgram, 'uSampler')
 
   if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
     alert(`Could not initialise shaders`)
@@ -177,33 +233,11 @@ function initShader(gl) {
 
   return { shaderProgram,
            shaderVertexPositionAttribute,
-           shaderVertexColorAttribute,
+           //shaderVertexColorAttribute,
+           shaderTexCoordAttribute,
            shaderProjectionMatrixUniform,
-           shaderModelViewMatrixUniform }
-}
-
-function draw(gl, obj, shader, matrices) {
-  gl.clearColor(0.0, 0.0, 0.0, 1.0)
-  gl.enable(gl.DEPTH_TEST)
-  // eslint-disable-next-line no-bitwise
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-
-  gl.useProgram(shader.shaderProgram)
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, obj.buffer)
-  gl.vertexAttribPointer(shader.shaderVertexPositionAttribute, obj.vertSize, gl.FLOAT, false, 0, 0)
-  
-  gl.bindBuffer(gl.ARRAY_BUFFER, obj.colorBuffer)
-  gl.vertexAttribPointer(shader.shaderVertexColorAttribute, obj.colorSize, gl.FLOAT, false, 0, 0)
-
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, obj.indices)
-
-  // connect the shader parms
-  
-  gl.uniformMatrix4fv(shader.shaderProjectionMatrixUniform, false, matrices.projectionMatrix)
-  gl.uniformMatrix4fv(shader.shaderModelViewMatrixUniform, false, matrices.modelViewMatrix)
-
-  gl.drawElements(obj.primtype, obj.nIndices, gl.UNSIGNED_SHORT, 0)
+           shaderModelViewMatrixUniform,
+           shaderSamplerUniform }
 }
 
 var texturesReady = false;
@@ -211,9 +245,15 @@ var texturesReady = false;
 function handleTextureLoaded(gl, texture) {
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-  gl.textImage2d(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+
+  // Prevents s-coordinate wrapping (repeating).
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  // Prevents t-coordinate wrapping (repeating).
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
   gl.bindTexture(gl.TEXTURE_2D, null);
   texturesReady = true;
 }
@@ -226,7 +266,39 @@ function initTexture(gl) {
   webGLTexture.image.onload = function () {
     handleTextureLoaded(gl, webGLTexture);
   }
-  webGLTexture.image.src = 'jo1.png';
+  webGLTexture.image.src = 'dist/jo1.png';
+}
+
+function draw(gl, obj, shader, matrices) {
+  gl.clearColor(0.0, 0.0, 0.0, 1.0)
+  gl.enable(gl.DEPTH_TEST)
+  // eslint-disable-next-line no-bitwise
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+  gl.useProgram(shader.shaderProgram)
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, obj.buffer)
+  gl.vertexAttribPointer(shader.shaderVertexPositionAttribute, obj.vertSize, gl.FLOAT, false, 0, 0)
+ 
+  // replace color with texture
+  //gl.bindBuffer(gl.ARRAY_BUFFER, obj.colorBuffer)
+  //gl.vertexAttribPointer(shader.shaderVertexColorAttribute, obj.colorSize, gl.FLOAT, false, 0, 0)
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, obj.texCoordBuffer)
+  gl.vertexAttribPointer(shader.shaderTexCoordAttribute, obj.texCoordSize, gl.FLOAT, false, 0, 0)
+
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, obj.indices)
+
+  // connect the shader parms
+  
+  gl.uniformMatrix4fv(shader.shaderProjectionMatrixUniform, false, matrices.projectionMatrix)
+  gl.uniformMatrix4fv(shader.shaderModelViewMatrixUniform, false, matrices.modelViewMatrix)
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, webGLTexture);
+  gl.uniform1i(shader.shaderSamplerUniform, 0);
+
+  gl.drawElements(obj.primtype, obj.nIndices, gl.UNSIGNED_SHORT, 0)
 }
 
 var currentTime = Date.now();
@@ -241,8 +313,10 @@ function animate(matrices, frameDuration) {
 
 function run(gl, cube, shader, matrices, frameDuration) {
   requestAnimationFrame(function() { run(gl, cube, shader, matrices, frameDuration); });
-  draw(gl, cube, shader, matrices);
-  animate(matrices, frameDuration);
+  if (texturesReady) {
+    draw(gl, cube, shader, matrices);
+    animate(matrices, frameDuration);
+  }
 }
 
 const canvas = document.getElementById('canvas')
@@ -253,19 +327,14 @@ canvas.style.border = "1px solid black"
 const gl = initWebGL(canvas)
 initViewport(gl, canvas)
 const obj = createCube(gl)
-const matrices  = initMatrices(canvas)
+const matrices = initMatrices(canvas)
 const shader = initShader(gl)
+initTexture(gl);
 const frameDuration = 5000; // ms - 1500 is about as fast as can go without ripping on 2017 12" macbook
 
 run(gl, obj, shader, matrices, frameDuration)
 
-/*
-function log(...args) {
-   var div = document.createElement("div");
-   div.textContent = [...args].join(" ");
-   document.body.appendChild(div);
-}
-
+/* DEBUGGING
 log("list of used attributes");
 log("-----------------------");
 
