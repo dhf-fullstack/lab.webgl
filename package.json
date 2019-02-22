@@ -1,0 +1,21 @@
+{
+  "name": "lab.webgl",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "webpack -w --mode=development",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "gl-matrix": "^3.0.0"
+  },
+  "devDependencies": {
+    "raw-loader": "^1.0.0",
+    "webpack": "^4.29.5",
+    "webpack-cli": "^3.2.3"
+  }
+}
